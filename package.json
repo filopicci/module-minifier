@@ -1,6 +1,6 @@
 {
   "name": "module-minifier",
-  "version": "1.0.2",
+  "version": "1.0.4",
   "description": "A module minifier using Webpack and Terser",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",

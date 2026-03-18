@@ -1,9 +1,9 @@
 /node_modules
 /src
-package-lock.json
-tsconfig.json
-package.json
 /scripts
 .env
 .npmrc
 .gitignore
+package-lock.json
+tsconfig.json
+package.json

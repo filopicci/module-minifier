@@ -16,7 +16,7 @@ type MinificationOptions = {
     verbose?: boolean;
 }
 
-const defaultRootDir = path.resolve(__dirname, '..', '..');
+const defaultRootDir = path.resolve(__dirname, '..', '..', '..');
 
 /**
  * Async function that minifies a given module using Webpack and Terser.
