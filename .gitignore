@@ -2,7 +2,7 @@
 /src
 package-lock.json
 tsconfig.json
-/package.json
+package.json
 /scripts
 .env
 .npmrc

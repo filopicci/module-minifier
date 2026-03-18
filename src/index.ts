@@ -16,6 +16,8 @@ type MinificationOptions = {
     verbose?: boolean;
 }
 
+const defaultRootDir = path.resolve(__dirname, '..', '..');
+
 /**
  * Async function that minifies a given module using Webpack and Terser.
  * @param mod The module to be minified.
@@ -35,7 +37,10 @@ export const minifyModule = async (packageName: string, options: MinificationOpt
                 options.minifiedFilename = basename(mod.filename, extname(mod.filename)) + ".min.js";
 
             if (!options?.minifiedDestination)
-                options.minifiedDestination = path.resolve(__dirname, 'dist');
+                options.minifiedDestination = path.resolve(defaultRootDir, 'dist');
+            else if (!path.isAbsolute(options.minifiedDestination))
+                options.minifiedDestination = path.resolve(defaultRootDir, options.minifiedDestination);
+
 
             const minifiedPath = join(options.minifiedDestination, options.minifiedFilename);
 
