@@ -1,22 +1,24 @@
-import path, { basename, extname } from "path";
+import path, { basename, extname, isAbsolute } from "path";
 import TerserPlugin from "terser-webpack-plugin";
 import { ProvidePlugin, webpack } from "webpack";
 import { join } from 'path';
 import { cleanup, createTempWorkspace, getPackage, uninstallPackage } from "./utils";
 
+//TODO: Aggiungere la gestione della versione del package che si vuole minificare
+
 /**
  * Options for minifying a module, including the output filename and destination.
  * - `minifiedFilename`: The name of the minified file (default is the original filename with a .min.js extension).
  * - `minifiedDestination`: The directory where the minified file will be saved (default is a 'dist' folder in the current directory).
+ * - `version`: The version of the package to be minified (optional).
  * - `verbose`: If true, logs detailed information about the minification process to the console.
  */
-type MinificationOptions = {
+export type MinificationOptions = {
     minifiedFilename?: string;
     minifiedDestination?: string;
+    version?: string;
     verbose?: boolean;
 }
-
-const defaultRootDir = path.resolve(__dirname, '..', '..', '..');
 
 /**
  * Async function that minifies a given module using Webpack and Terser.
@@ -27,8 +29,9 @@ export const minifyModule = async (packageName: string, options: MinificationOpt
 
     return new Promise<void>(async (resolve, reject) => {
         try {
+            const defaultRootDir = path.resolve(__dirname, '..', '..', '..');
             const tmpDir = await createTempWorkspace(options.verbose);
-            const mod = await getPackage(packageName, tmpDir, options.verbose);
+            const mod = await getPackage(packageName, tmpDir, { version: options.version, verbose: options.verbose });
 
             if (!mod)
                 throw new Error("Invalid module provided for minification.");
@@ -38,7 +41,7 @@ export const minifyModule = async (packageName: string, options: MinificationOpt
 
             if (!options?.minifiedDestination)
                 options.minifiedDestination = path.resolve(defaultRootDir, 'dist');
-            else if (!path.isAbsolute(options.minifiedDestination))
+            else if (!isAbsolute(options.minifiedDestination))
                 options.minifiedDestination = path.resolve(defaultRootDir, options.minifiedDestination);
 
 
@@ -99,7 +102,7 @@ export const minifyModule = async (packageName: string, options: MinificationOpt
                 console.log(`Module ${packageName} minified successfully to ${minifiedPath}`);
             });
 
-            await uninstallPackage(packageName, options.verbose);
+            await uninstallPackage(packageName, { version: options.version, verbose: options.verbose });
             await cleanup(tmpDir, options.verbose);
             resolve();
         } catch (error) {

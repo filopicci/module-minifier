@@ -3,6 +3,9 @@ import { spawn } from "cross-spawn";
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { mkdir, rm, writeFile } from "fs/promises";
+import { MinificationOptions } from ".";
+
+type MinificationPackageOptions = Pick<MinificationOptions, 'version' | 'verbose'>;
 
 export const createTempWorkspace = async (verbose?: boolean): Promise<string> => {
     const tempDir = join(tmpdir(), `minifier-${Date.now()}`);
@@ -23,8 +26,8 @@ export const createTempWorkspace = async (verbose?: boolean): Promise<string> =>
     return tempDir;
 };
 
-export const installPackageInTemp = async (packageName: string, tempDir: string, verbose?: boolean) => {
-    await execNpmCommand('install', [packageName], verbose, { cwd: tempDir });
+export const installPackageInTemp = async (packageName: string, tempDir: string, packageOptions: MinificationPackageOptions) => {
+    await execNpmCommand('install', [packageName], packageOptions, { cwd: tempDir });
 };
 
 export const cleanup = async (tempDir: string, verbose?: boolean) => {
@@ -38,10 +41,10 @@ const resolveFromTemp = (packageName: string, tempDir: string): string => {
     });
 };
 
-export const getPackage = async (packageName: string, tmpDir: string, verbose?: boolean): Promise<Module | undefined> => {
+export const getPackage = async (packageName: string, tmpDir: string, packageOptions: MinificationPackageOptions): Promise<Module | undefined> => {
     let packagePath: string;
     try {
-        await installPackageInTemp(packageName, tmpDir, verbose);
+        await installPackageInTemp(packageName, tmpDir, packageOptions);
 
         packagePath = resolveFromTemp(packageName, tmpDir);
         require(packagePath);
@@ -64,17 +67,17 @@ export const getPackage = async (packageName: string, tmpDir: string, verbose?: 
 
 }
 
-export const uninstallPackage = async (packageName: string, verbose?: boolean): Promise<void> => {
+export const uninstallPackage = async (packageName: string, packageOptions: MinificationPackageOptions): Promise<void> => {
 
     try {
-        return await execNpmCommand("uninstall", [packageName], verbose);
+        return await execNpmCommand("uninstall", [packageName], packageOptions);
     } catch (error) {
         throw new Error(`Failed to uninstall package ${packageName}: ${error instanceof Error ? error.message : error}`);
     }
 
 }
 
-const execNpmCommand = async (command: string, args: string[], verbose ?: boolean, spawnOptions?: { cwd?: string }): Promise<void> => {
+const execNpmCommand = async (command: string, args: string[], packageOptions: MinificationPackageOptions, spawnOptions?: { cwd?: string }): Promise<void> => {
 
     // Validate arguments
     if (!command || typeof command !== 'string') {
@@ -91,6 +94,11 @@ const execNpmCommand = async (command: string, args: string[], verbose ?: boolea
         }
     }
 
+    let commandToExecute = command;
+
+    if(packageOptions?.version)
+        commandToExecute += `@${packageOptions.version}`;
+
     return new Promise((resolve, reject) => {
 
         const options = spawnOptions ?? { cwd: process.cwd() };
@@ -98,7 +106,7 @@ const execNpmCommand = async (command: string, args: string[], verbose ?: boolea
         const npm = spawn("npm", [command, ...args], options);
 
         npm.stdout.on("data", (data) => {
-            verbose && console.log(`npm stdout: ${data.toString()}`);
+            packageOptions.verbose && console.log(`npm stdout: ${data.toString()}`);
         });
 
         npm.stderr.on("data", (data) => {
@@ -111,7 +119,7 @@ const execNpmCommand = async (command: string, args: string[], verbose ?: boolea
 
         npm.on("close", (code) => {
             if (code === 0) {
-                verbose && console.log(`npm ${command} ${args.join(' ')} executed successfully.`);
+                packageOptions.verbose && console.log(`npm ${command} ${args.join(' ')} ${packageOptions.version || 'latest'} executed successfully.`);
                 resolve();
             } else {
                 reject(new Error(`npm process exited with code ${code}`));
